@@ -1,0 +1,39 @@
+name: "万界大比：劫源争夺战"
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # 协调世界时 12:00 (北京时间 20:00)
+  workflow_dispatch:      # 允许手动触发进行测试
+
+jobs:
+  battle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 .NET 环境
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: 收集参赛选手
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 获取所有带 [TOURNAMENT_ENTRY] 标签的 Issue
+          gh issue list --label "TOURNAMENT_ENTRY" --json body,number,author > entries.json
+          echo "已收集报名名单"
+
+      - name: 执行仲裁模拟
+        run: |
+          # 运行 C# 战斗内核 (假设脚本在 scripts/Arbiter.cs)
+          dotnet run --project ./scripts/Arbiter.csproj entries.json
+
+      - name: 公布战果并归档
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 此步骤由 Arbiter.cs 自动通过 gh CLI 回复 Issue 并关闭它们
+          echo "今日大比圆满结束"
